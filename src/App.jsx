@@ -70,14 +70,22 @@ const DEFAULT_SETTINGS = {
   }
 };
 const initDisciplines = s => DISCIPLINES.map(d=>({...d,active:false,a1:1,hh:s.disciplines[d.id]??d.hhBase}));
-const STORAGE_PREFIX = "orcamento:";
-const USERS_KEY     = "users:data";
+const STORAGE_PREFIX = "sma:orcamento:";
+const USERS_KEY     = "sma:users:data";
 
 function hashPwd(p){ try{ return btoa(unescape(encodeURIComponent(p))); }catch(e){ return btoa(p); } }
 function checkPwd(plain,stored){ return hashPwd(plain)===stored; }
 function getDefaultUsers(){
   return [{id:"1",name:"Administrador",username:"admin",password:hashPwd("admin123"),role:"admin",active:true,createdAt:new Date().toISOString()}];
 }
+
+// ─── localStorage helpers (replaces window.storage) ──────────────────────
+const LS = {
+  get:  (key)=>{ try{ const v=localStorage.getItem(key); return v?{value:v}:null; }catch(e){ return null; }},
+  set:  (key,val)=>{ try{ localStorage.setItem(key,val); return true; }catch(e){ return false; }},
+  del:  (key)=>{ try{ localStorage.removeItem(key); return true; }catch(e){ return false; }},
+  list: (prefix)=>{ try{ return Object.keys(localStorage).filter(k=>k.startsWith(prefix)); }catch(e){ return []; }},
+};
 
 // ─── HELPERS ─────────────────────────────────────────────────────────────────
 const R  = (n,d=2)=>Math.round(n*10**d)/10**d;
@@ -1224,16 +1232,15 @@ function LoginView({onLogin}){
   const [loading,setLoading] =useState(false);
   const [showPwd,setShowPwd] =useState(false);
 
-  const handleSubmit=async()=>{
+  const handleSubmit=()=>{
     if(!username.trim()||!password.trim()){setError("Preencha usuário e senha.");return;}
     setLoading(true);setError("");
     try{
-      let result;
-      try{ result=await window.storage.get(USERS_KEY,true); }catch(e){}
+      const result=LS.get(USERS_KEY);
       let users=result?JSON.parse(result.value):null;
       if(!users||users.length===0){
         users=getDefaultUsers();
-        try{ await window.storage.set(USERS_KEY,JSON.stringify(users),true); }catch(e){}
+        LS.set(USERS_KEY,JSON.stringify(users));
       }
       const user=users.find(u=>u.username.toLowerCase()===username.trim().toLowerCase()&&checkPwd(password,u.password)&&u.active);
       if(user){ onLogin(user); }
@@ -1300,35 +1307,35 @@ function AdminView({currentUser,onClose}){
 
   const loadUsers=async()=>{
     setLoading(true);
-    try{ const r=await window.storage.get(USERS_KEY,true); setUsers(r?JSON.parse(r.value):getDefaultUsers()); }catch(e){}
+    const r=LS.get(USERS_KEY); setUsers(r?JSON.parse(r.value):getDefaultUsers());
     setLoading(false);
   };
   useEffect(()=>{ loadUsers(); },[]);
 
-  const persist=async(next)=>{
-    try{ await window.storage.set(USERS_KEY,JSON.stringify(next),true); setUsers(next); return true; }catch(e){ return false; }
+  const persist=(next)=>{
+    const ok=LS.set(USERS_KEY,JSON.stringify(next)); if(ok) setUsers(next); return ok;
   };
 
   const flash=msg=>{ setSaveMsg(msg); setTimeout(()=>setSaveMsg(""),2200); };
 
-  const handleAdd=async()=>{
+  const handleAdd=()=>{
     if(!form.name.trim()||!form.username.trim()||!form.password.trim()){setFormError("Preencha todos os campos.");return;}
     if(users.find(u=>u.username.toLowerCase()===form.username.trim().toLowerCase())){setFormError("Nome de usuário já existe.");return;}
     const nu={id:Date.now().toString(),name:form.name.trim(),username:form.username.trim().toLowerCase(),password:hashPwd(form.password),role:form.role,active:true,createdAt:new Date().toISOString()};
-    if(await persist([...users,nu])){ setForm({name:"",username:"",password:"",role:"user"}); setFormError(""); flash("Usuário cadastrado!"); }
+    if(persist([...users,nu])){ setForm({name:"",username:"",password:"",role:"user"}); setFormError(""); flash("Usuário cadastrado!"); }
   };
 
-  const handleToggle=async(id)=>{ await persist(users.map(u=>u.id===id?{...u,active:!u.active}:u)); flash("Atualizado!"); };
+  const handleToggle=(id)=>{ persist(users.map(u=>u.id===id?{...u,active:!u.active}:u)); flash("Atualizado!"); };
 
-  const handleDelete=async(id)=>{
+  const handleDelete=(id)=>{
     if(id==="1"){setDelConfirm(null);return;}
-    if(await persist(users.filter(u=>u.id!==id))){ setDelConfirm(null); flash("Usuário removido!"); }
+    if(persist(users.filter(u=>u.id!==id))){ setDelConfirm(null); flash("Usuário removido!"); }
   };
 
-  const handleChangePwd=async(id)=>{
+  const handleChangePwd=(id)=>{
     const np=pwdEdit[id]||"";
     if(np.length<4){alert("Senha mínima de 4 caracteres.");return;}
-    if(await persist(users.map(u=>u.id===id?{...u,password:hashPwd(np)}:u))){ setPwdEdit(p=>({...p,[id]:""})); flash("Senha alterada!"); }
+    if(persist(users.map(u=>u.id===id?{...u,password:hashPwd(np)}:u))){ setPwdEdit(p=>({...p,[id]:""})); flash("Senha alterada!"); }
   };
 
   const iBase={padding:"7px 10px",border:`1.5px solid ${C.border}`,borderRadius:8,fontSize:13,outline:"none",fontFamily:"DM Sans, sans-serif",width:"100%",boxSizing:"border-box"};
@@ -1445,17 +1452,17 @@ function ChangePasswordModal({currentUser,onClose}){
   const [show,setShow] =useState({cur:false,next:false,conf:false});
   const tog=(f)=>setShow(p=>({...p,[f]:!p[f]}));
 
-  const handleSave=async()=>{
+  const handleSave=()=>{
     setErr("");
     if(!cur||!next||!conf){setErr("Preencha todos os campos.");return;}
     if(!checkPwd(cur,currentUser.password)){setErr("Senha atual incorreta.");return;}
     if(next.length<4){setErr("A nova senha deve ter no mínimo 4 caracteres.");return;}
     if(next!==conf){setErr("A confirmação não confere com a nova senha.");return;}
     try{
-      let r; try{r=await window.storage.get(USERS_KEY,true);}catch(e){}
+      const r=LS.get(USERS_KEY);
       const users=r?JSON.parse(r.value):getDefaultUsers();
       const updated=users.map(u=>u.id===currentUser.id?{...u,password:hashPwd(next)}:u);
-      await window.storage.set(USERS_KEY,JSON.stringify(updated),true);
+      LS.set(USERS_KEY,JSON.stringify(updated));
       currentUser.password=hashPwd(next); // update in-memory ref
       setOk(true);
       setTimeout(onClose,1800);
@@ -1529,27 +1536,16 @@ export default function App(){
 
   // Seed users on first load
   useEffect(()=>{
-    (async()=>{
-      try{
-        let r; try{ r=await window.storage.get(USERS_KEY,true); }catch(e){}
-        if(!r){ await window.storage.set(USERS_KEY,JSON.stringify(getDefaultUsers()),true); }
-      }catch(e){}
-    })();
+    const existing=LS.get(USERS_KEY);
+    if(!existing){ LS.set(USERS_KEY,JSON.stringify(getDefaultUsers())); }
   },[]);
 
   // Load saved quotes on mount
   useEffect(()=>{
-    (async()=>{
-      try{
-        const keys=await window.storage.list(STORAGE_PREFIX);
-        if(!keys?.keys?.length) return;
-        const items=[];
-        for(const k of keys.keys){
-          try{const r=await window.storage.get(k);if(r)items.push(JSON.parse(r.value));}catch(e){}
-        }
-        setSavedQuotes(items);
-      }catch(e){}
-    })();
+    const keys=LS.list(STORAGE_PREFIX);
+    const items=[];
+    for(const k of keys){ const r=LS.get(k); if(r){ try{items.push(JSON.parse(r.value));}catch(e){} } }
+    setSavedQuotes(items);
   },[]);
 
   const handleLogin=user=>{
@@ -1618,7 +1614,7 @@ export default function App(){
     setScenarioA({dados,disciplines:[...disciplines],deliveryType,params:{...params},derivados:[...derivados],coord:{...coord},calc:{...calc},desconto:{...desconto}});
   };
 
-  const handleSaveQuote=async()=>{
+  const handleSaveQuote=()=>{
     setSaveStatus("saving");
     const id=Date.now();
     const dt=DELIVERY_TYPES.find(d=>d.id===deliveryType)?.name||"—";
@@ -1631,11 +1627,11 @@ export default function App(){
       state:{dados,disciplines,deliveryType,params,derivados,coord,desconto,settings},
     };
     try{
-      await window.storage.set(`${STORAGE_PREFIX}${id}`,JSON.stringify(q));
-      setSavedQuotes(p=>[...p.filter(x=>x.id!==id),q]);
-      setSaveStatus("saved");
-      setTimeout(()=>setSaveStatus(""),2500);
-    }catch(e){setSaveStatus("");alert("Erro ao salvar. Tente novamente.");}
+      const ok=LS.set(`${STORAGE_PREFIX}${id}`,JSON.stringify(q));
+      if(ok){
+        setSavedQuotes(p=>[...p.filter(x=>x.id!==id),q]);
+        setSaveStatus("saved"); setTimeout(()=>setSaveStatus(""),2500);
+      }else{ setSaveStatus(""); alert("Erro ao salvar. Tente novamente."); }
   };
 
   const handleLoadQuote=q=>{
@@ -1653,7 +1649,7 @@ export default function App(){
   };
 
   const handleDeleteQuote=async(id)=>{
-    try{await window.storage.delete(`${STORAGE_PREFIX}${id}`);}catch(e){}
+    LS.del(`${STORAGE_PREFIX}${id}`);
     setSavedQuotes(p=>p.filter(q=>q.id!==id));
   };
 
