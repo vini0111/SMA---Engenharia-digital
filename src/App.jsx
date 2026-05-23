@@ -479,8 +479,8 @@ function OrientacoesView({settings}){
         {steps.map(s=>(
           <div key={s.n} style={{display:"flex",gap:14,padding:"12px 16px",background:"#fff",borderRadius:12,border:`1px solid ${C.mid}`}}>
             <div style={{width:26,height:26,borderRadius:13,background:C.teal,color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,flexShrink:0,marginTop:1}}>{s.n}</div>
-            <div>
-              <p style={{fontFamily:"Outfit, sans-serif",fontWeight:600,fontSize:13,color:C.dark,marginBottom:3}}>{s.title}</p>
+            <div style={{flex:1}}>
+              <p style={{fontFamily:"Outfit, sans-serif",fontWeight:600,fontSize:13,color:C.dark,marginBottom:3,textAlign:"right"}}>{s.title}</p>
               <p style={{fontSize:13,color:C.muted,lineHeight:1.55}}>{s.body}</p>
             </div>
           </div>
@@ -906,7 +906,7 @@ function Step1({data,onChange}){
       {fld("Nome / código do projeto","projeto","Ex: Modernização Sala Elétrica SE-03")}
       <div>
         <label style={{display:"block",fontSize:11,fontWeight:600,color:C.muted,textTransform:"uppercase",letterSpacing:".06em",marginBottom:6}}>Elaborado por</label>
-        <div style={{padding:"9px 12px",border:`1.5px solid ${C.border}`,borderRadius:10,fontSize:14,background:C.bg,color:C.muted,cursor:"not-allowed",userSelect:"none"}}>
+        <div style={{padding:"9px 12px",border:`1.5px solid ${C.border}`,borderRadius:10,fontSize:14,background:C.bg,color:C.muted,cursor:"not-allowed",userSelect:"none",textAlign:"right"}}>
           {data.responsavel||"—"}
         </div>
         <p style={{fontSize:11,color:C.border,marginTop:4}}>Campo preenchido automaticamente com o usuário logado.</p>
@@ -1441,24 +1441,30 @@ function AdminView({currentUser,onClose}){
                         </span>
                       </td>
                       <td style={{padding:"8px 12px"}}>
-                        <div style={{display:"flex",gap:6,justifyContent:"flex-end",alignItems:"center",flexWrap:"wrap"}}>
-                          {/* Inline password change */}
-                          <input type={pwdShow[u.id]?"text":"password"} placeholder="Nova senha" value={pwdEdit[u.id]||""}
-                            onChange={e=>setPwdEdit(p=>({...p,[u.id]:e.target.value}))}
-                            style={{...iBase,width:110,fontSize:12,padding:"4px 8px"}}/>
-                          <button onClick={()=>setPwdShow(p=>({...p,[u.id]:!p[u.id]}))} style={{padding:"4px 6px",background:C.bg,border:`1px solid ${C.border}`,borderRadius:6,cursor:"pointer",fontSize:10,color:C.muted}}>{pwdShow[u.id]?"👁":"👁"}</button>
-                          <button onClick={()=>handleChangePwd(u.id)} disabled={!pwdEdit[u.id]}
-                            style={{padding:"4px 10px",background:pwdEdit[u.id]?C.teal:C.border,color:"#fff",border:"none",borderRadius:6,cursor:pwdEdit[u.id]?"pointer":"default",fontSize:11,fontWeight:600}}>Alterar</button>
-                          <button onClick={()=>handleToggle(u.id)} disabled={u.id==="1"}
-                            style={{padding:"4px 10px",background:u.active?"#FEF9C3":"#F0FDF4",color:u.active?"#854D0E":"#166534",border:`1px solid ${u.active?"#FDE68A":"#BBF7D0"}`,borderRadius:6,cursor:u.id==="1"?"default":"pointer",fontSize:11,fontWeight:600}}>
-                            {u.active?"Desativar":"Ativar"}
-                          </button>
-                          {u.id!=="1"&&(
-                            delConfirm===u.id
-                              ? <><button onClick={()=>handleDelete(u.id)} style={{padding:"4px 10px",background:"#C53030",color:"#fff",border:"none",borderRadius:6,cursor:"pointer",fontSize:11,fontWeight:600}}>Confirmar</button>
-                                  <button onClick={()=>setDelConfirm(null)} style={{padding:"4px 8px",background:"#fff",border:`1px solid ${C.border}`,borderRadius:6,cursor:"pointer",fontSize:11}}>✕</button></>
-                              : <button onClick={()=>setDelConfirm(u.id)} style={{padding:"4px 10px",background:"#FFF5F5",color:"#C53030",border:"1px solid #FED7D7",borderRadius:6,cursor:"pointer",fontSize:11,fontWeight:600}}>Remover</button>
-                          )}
+                        <div style={{display:"flex",gap:8,justifyContent:"flex-end",alignItems:"center"}}>
+                          {/* Password change group */}
+                          <div style={{display:"flex",gap:4,alignItems:"center"}}>
+                            <input type={pwdShow[u.id]?"text":"password"} placeholder="Nova senha" value={pwdEdit[u.id]||""}
+                              onChange={e=>setPwdEdit(p=>({...p,[u.id]:e.target.value}))}
+                              style={{...iBase,width:110,fontSize:12,padding:"4px 8px"}}/>
+                            <button onClick={()=>setPwdShow(p=>({...p,[u.id]:!p[u.id]}))} style={{padding:"4px 6px",background:C.bg,border:`1px solid ${C.border}`,borderRadius:6,cursor:"pointer",fontSize:10,color:C.muted,flexShrink:0}}>{pwdShow[u.id]?"👁":"👁"}</button>
+                            <button onClick={()=>handleChangePwd(u.id)} disabled={!pwdEdit[u.id]}
+                              style={{padding:"4px 10px",background:pwdEdit[u.id]?C.teal:C.border,color:"#fff",border:"none",borderRadius:6,cursor:pwdEdit[u.id]?"pointer":"default",fontSize:11,fontWeight:600,flexShrink:0,whiteSpace:"nowrap"}}>Alterar</button>
+                          </div>
+                          {/* Status + remove group — fixed width so all rows align */}
+                          <div style={{display:"flex",gap:4,alignItems:"center",minWidth:150,justifyContent:"flex-end"}}>
+                            <button onClick={()=>handleToggle(u.id)} disabled={u.id==="1"}
+                              style={{padding:"4px 10px",background:u.active?"#FEF9C3":"#F0FDF4",color:u.active?"#854D0E":"#166534",border:`1px solid ${u.active?"#FDE68A":"#BBF7D0"}`,borderRadius:6,cursor:u.id==="1"?"default":"pointer",fontSize:11,fontWeight:600,flexShrink:0,whiteSpace:"nowrap"}}>
+                              {u.active?"Desativar":"Ativar"}
+                            </button>
+                            {u.id!=="1"
+                              ? (delConfirm===u.id
+                                  ? <><button onClick={()=>handleDelete(u.id)} style={{padding:"4px 10px",background:"#C53030",color:"#fff",border:"none",borderRadius:6,cursor:"pointer",fontSize:11,fontWeight:600,whiteSpace:"nowrap"}}>Confirmar</button>
+                                      <button onClick={()=>setDelConfirm(null)} style={{padding:"4px 8px",background:"#fff",border:`1px solid ${C.border}`,borderRadius:6,cursor:"pointer",fontSize:11}}>✕</button></>
+                                  : <button onClick={()=>setDelConfirm(u.id)} style={{padding:"4px 10px",background:"#FFF5F5",color:"#C53030",border:"1px solid #FED7D7",borderRadius:6,cursor:"pointer",fontSize:11,fontWeight:600,whiteSpace:"nowrap"}}>Remover</button>)
+                              : <span style={{display:"inline-block",width:62}}/>
+                            }
+                          </div>
                         </div>
                       </td>
                     </tr>
