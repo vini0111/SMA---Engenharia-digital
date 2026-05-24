@@ -480,7 +480,7 @@ function OrientacoesView({settings}){
           <div key={s.n} style={{display:"flex",gap:14,padding:"12px 16px",background:"#fff",borderRadius:12,border:`1px solid ${C.mid}`}}>
             <div style={{width:26,height:26,borderRadius:13,background:C.teal,color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,flexShrink:0,marginTop:1}}>{s.n}</div>
             <div style={{flex:1}}>
-              <p style={{fontFamily:"Outfit, sans-serif",fontWeight:600,fontSize:13,color:C.dark,marginBottom:3,textAlign:"right"}}>{s.title}</p>
+              <p style={{fontFamily:"Outfit, sans-serif",fontWeight:600,fontSize:13,color:C.dark,marginBottom:3,textAlign:"left"}}>{s.title}</p>
               <p style={{fontSize:13,color:C.muted,lineHeight:1.55}}>{s.body}</p>
             </div>
           </div>
@@ -906,7 +906,7 @@ function Step1({data,onChange}){
       {fld("Nome / código do projeto","projeto","Ex: Modernização Sala Elétrica SE-03")}
       <div>
         <label style={{display:"block",fontSize:11,fontWeight:600,color:C.muted,textTransform:"uppercase",letterSpacing:".06em",marginBottom:6}}>Elaborado por</label>
-        <div style={{padding:"9px 12px",border:`1.5px solid ${C.border}`,borderRadius:10,fontSize:14,background:C.bg,color:C.muted,cursor:"not-allowed",userSelect:"none",textAlign:"right"}}>
+        <div style={{padding:"9px 12px",border:`1.5px solid ${C.border}`,borderRadius:10,fontSize:14,background:C.bg,color:C.muted,cursor:"not-allowed",userSelect:"none",textAlign:"left"}}>
           {data.responsavel||"—"}
         </div>
         <p style={{fontSize:11,color:C.border,marginTop:4}}>Campo preenchido automaticamente com o usuário logado.</p>
