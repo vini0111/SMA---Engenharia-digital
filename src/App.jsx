@@ -179,16 +179,20 @@ function NumInput({value,onChange,min=0,step=1,width=72,center=false}){
 function FormattedInput({value,onChange,decimals=2,style:sty}){
   const [editing,setEditing]=useState(false);
   const [raw,setRaw]=useState("");
+  // useRef keeps the latest raw value accessible in onBlur without stale closure
+  const rawRef=useRef("");
   const fmt=n=>isNaN(n)?"":Number(n).toLocaleString("pt-BR",{minimumFractionDigits:decimals,maximumFractionDigits:decimals});
   const parse=str=>{
-    const clean=str.includes(",")? str.replace(/\./g,"").replace(",","."): str;
+    // Always strip thousands separators (dots in pt-BR) then convert decimal comma to dot
+    const clean=str.replace(/\.(?=\d{3})/g,"").replace(",",".");
     return parseFloat(clean.replace(/[^\d.]/g,""));
   };
+  const handleChange=e=>{const v=e.target.value;setRaw(v);rawRef.current=v;};
   return <input type="text" inputMode="decimal"
     value={editing?raw:fmt(value)}
-    onFocus={e=>{setEditing(true);setRaw(fmt(value));e.target.select();}}
-    onChange={e=>setRaw(e.target.value)}
-    onBlur={()=>{setEditing(false);const p=parse(raw);if(!isNaN(p)&&p>=0)onChange(p);}}
+    onFocus={e=>{const formatted=fmt(value);setRaw(formatted);rawRef.current=formatted;setEditing(true);e.target.select();}}
+    onChange={handleChange}
+    onBlur={()=>{setEditing(false);const p=parse(rawRef.current);if(!isNaN(p)&&p>=0)onChange(p);}}
     style={sty}/>;
 }
 function TextInput({value,onChange,placeholder}){
@@ -254,15 +258,6 @@ function SettingsModal({settings,onSave,onReset,onClose}){
   };
 
   const iStyle={flex:1,padding:"7px 10px",border:`1.5px solid ${C.border}`,borderRadius:8,fontSize:13,outline:"none",fontFamily:"DM Sans, sans-serif",boxSizing:"border-box",width:"100%"};
-  const row=(label,key,dec=2,suf="")=>(
-    <div key={key}>
-      <label style={{fontSize:12,color:C.muted,display:"block",marginBottom:4}}>{label}</label>
-      <div style={{display:"flex",alignItems:"center",gap:6}}>
-        <FormattedInput value={s[key]} onChange={v=>set(key,v)} decimals={dec} style={iStyle}/>
-        {suf&&<span style={{fontSize:12,color:C.gray,minWidth:18}}>{suf}</span>}
-      </div>
-    </div>
-  );
 
   return(
     <div style={{position:"fixed",inset:0,zIndex:50,background:"rgba(11,58,79,.65)",backdropFilter:"blur(4px)",display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
@@ -280,16 +275,28 @@ function SettingsModal({settings,onSave,onReset,onClose}){
           <section>
             <SectionLabel>Valores de HH</SectionLabel>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
-              {row("HH Modelador (R$/h)","hhModelador",2)}
-              {row("HH Coordenador (R$/h)","hhCoordenador",2)}
+              <div>
+                <label style={{fontSize:12,color:C.muted,display:"block",marginBottom:4}}>HH Modelador (R$/h)</label>
+                <FormattedInput value={s.hhModelador} onChange={v=>set("hhModelador",v)} decimals={2} style={iStyle}/>
+              </div>
+              <div>
+                <label style={{fontSize:12,color:C.muted,display:"block",marginBottom:4}}>HH Coordenador (R$/h)</label>
+                <FormattedInput value={s.hhCoordenador} onChange={v=>set("hhCoordenador",v)} decimals={2} style={iStyle}/>
+              </div>
             </div>
           </section>
           {/* Licença */}
           <section>
             <SectionLabel>Licença de software</SectionLabel>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
-              {row("AEC Collection (R$/ano)","licencaAnual",2)}
-              {row("Horas trabalhadas / ano","horasAnuais",0)}
+              <div>
+                <label style={{fontSize:12,color:C.muted,display:"block",marginBottom:4}}>AEC Collection (R$/ano)</label>
+                <FormattedInput value={s.licencaAnual} onChange={v=>set("licencaAnual",v)} decimals={2} style={iStyle}/>
+              </div>
+              <div>
+                <label style={{fontSize:12,color:C.muted,display:"block",marginBottom:4}}>Horas trabalhadas / ano</label>
+                <FormattedInput value={s.horasAnuais} onChange={v=>set("horasAnuais",v)} decimals={0} style={iStyle}/>
+              </div>
             </div>
           </section>
           {/* Margem */}
