@@ -1874,23 +1874,27 @@ export default function App(){
 
   const handleSaveQuote=async(forceCopy=false)=>{
     setSaveStatus("saving");
-    // Determine if this is an update to an existing owned quote or a new/copy save
     const loaded=loadedQuoteRef.current;
     const isOwner=!loaded||(loaded.responsavel===currentUser?.name)||currentUser?.role==="admin";
     const useExistingId=loaded&&isOwner&&!forceCopy;
     const id=useExistingId?loaded.id:Date.now();
+    // When saving a copy, reassign responsavel to the current user
+    const newResponsavel=forceCopy?(currentUser?.name||""):dados.responsavel||"";
+    const newDados=forceCopy?{...dados,responsavel:newResponsavel}:dados;
     const dt=DELIVERY_TYPES.find(d=>d.id===deliveryType)?.name||"—";
     const q={
       id,
-      titulo:`${dados.cliente||"—"} — ${dados.projeto||"—"}`,
+      titulo:`${newDados.cliente||"—"} — ${newDados.projeto||"—"}`,
       data:new Date().toLocaleDateString("pt-BR"),
       tipo:dt,
       valor:R(calc.finalPrice-calcDescontoValor(desconto,calc.finalPrice),2),
-      responsavel:dados.responsavel||"",
-      state:{dados,disciplines,deliveryType,params,derivados,coord,desconto,settings},
+      responsavel:newResponsavel,
+      state:{dados:newDados,disciplines,deliveryType,params,derivados,coord,desconto,settings},
     };
     const{error}=await supabase.from("orcamentos").upsert(q);
     if(!error){
+      // Update local dados state so the UI reflects the new owner immediately
+      if(forceCopy) setDados(newDados);
       setSavedQuotes(p=>[q,...p.filter(x=>x.id!==id)]);
       loadedQuoteRef.current=q;
       setIsUnsaved(false);
