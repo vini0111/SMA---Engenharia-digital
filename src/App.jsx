@@ -910,27 +910,19 @@ function buildPrintHTML(calc,orcamento,settings,desconto){
   const now=new Date().toLocaleDateString("pt-BR");
   const descontoValor=calcDescontoValor(desconto,finalPrice);
   const precoFinal=R(finalPrice-descontoValor,2);
-  // Discipline rows: Disciplina | A1 | HH/A1 Modelador | HH/A1 Eng. | Horas Modelador | Horas Eng. | Custo
-  const discRows=disciplineRows.map(d=>{
-    const hhEng=settings.engEnabled?(settings.engHH[d.id]??4.0):0;
-    const horasEng=settings.engEnabled?`${N0(d.a1*hhEng)} h`:null;
-    return `<tr>
+  // Discipline rows: Disciplina | A1 | HH Modelador | HH Eng. | Custo
+  const discRows=disciplineRows.map(d=>`<tr>
       <td>${d.name}</td>
       <td style="text-align:center">${d.a1}</td>
-      <td style="text-align:center">${N1(d.hh)}</td>
-      ${settings.engEnabled?`<td style="text-align:center">${N1(hhEng)}</td>`:""}
-      <td style="text-align:center">${N0(d.hours)} h</td>
-      ${settings.engEnabled?`<td style="text-align:center">${horasEng}</td>`:""}
+      <td style="text-align:center">${d.modelingHours} h</td>
+      ${settings.engEnabled?`<td style="text-align:center">${d.engHoursDisc} h</td>`:""}
       <td style="text-align:right">${BRL(d.cost)}</td>
-    </tr>`;
-  }).join("");
+    </tr>`).join("");
   const discHeader=`
     <th style="text-align:left">Disciplina</th>
     <th style="text-align:center">A1</th>
-    <th style="text-align:center">HH/A1 Modelador</th>
-    ${settings.engEnabled?`<th style="text-align:center">HH/A1 Eng.</th>`:""}
-    <th style="text-align:center">Horas Modelador</th>
-    ${settings.engEnabled?`<th style="text-align:center">Horas Eng.</th>`:""}
+    <th style="text-align:center">HH Modelador</th>
+    ${settings.engEnabled?`<th style="text-align:center">HH Eng.</th>`:""}
     <th style="text-align:right">Custo</th>`;
   return `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">
 <title>Orçamento — ${orcamento.dados.cliente||"Cliente"}</title>
@@ -1347,22 +1339,28 @@ function Step7({calc,orcamento,settings,desconto,onDescontoChange,scenarioA,onSa
         <p style={{fontSize:12,color:C.sageL,marginBottom:8}}>{orcamento.dados.cliente||"Cliente"} — {orcamento.dados.projeto||"Projeto"}</p>
         <p style={{fontSize:11,color:C.muted,textTransform:"uppercase",letterSpacing:".06em",marginBottom:6}}>Valor total para serviços de engenharia digital</p>
         <p style={{fontFamily:"Outfit, sans-serif",fontWeight:800,fontSize:36,color:"#fff",marginBottom:14}}>{BRL(precoComDesconto)}</p>
-        <div style={{paddingTop:14,borderTop:"1px solid rgba(255,255,255,.1)",display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(80px,1fr))",gap:8}}>
-          {[
-            {label:"Horas modelagem",  value:`${N1(totalModelingHours)} h`},
-            ...(engHours>0?[{label:"Horas engenharia", value:`${N1(engHours)} h`}]:[]),
+        {(()=>{
+          const heroItems=[
+            {label:"Horas modelagem",  value:`${N0(totalModelingHours)} h`},
+            ...(engHours>0?[{label:"Horas engenharia", value:`${N0(engHours)} h`}]:[]),
             {label:"Tipo de entrega",  value:dtLabel},
-            {label:"Fator mult.",      value:`×${N1(multiplier)}`},
+            {label:"Fator mult.",      value:`×${N2(multiplier)}`},
             {label:"Complexidade",     value:COMPLEXITY.find(c=>c.id===orcamento.params?.complexidade)?.name||"—"},
             {label:"LOD",              value:LOD.find(l=>l.id===orcamento.params?.lod)?.name||"—"},
             {label:"LOI",              value:LOI.find(l=>l.id===orcamento.params?.loi)?.name||"—"},
-          ].map(({label,value})=>(
-            <div key={label} style={{textAlign:"center"}}>
-              <p style={{fontSize:11,color:C.muted}}>{label}</p>
-              <p style={{fontFamily:"Outfit, sans-serif",fontWeight:700,fontSize:13,color:"#fff",marginTop:3}}>{value}</p>
+          ];
+          const cols=heroItems.length;
+          return(
+            <div style={{paddingTop:14,borderTop:"1px solid rgba(255,255,255,.1)",display:"grid",gridTemplateColumns:`repeat(${cols},1fr)`,gap:6,alignItems:"start"}}>
+              {heroItems.map(({label,value})=>(
+                <div key={label} style={{textAlign:"center",minWidth:0}}>
+                  <p style={{fontSize:10,color:C.muted,lineHeight:1.3,marginBottom:3,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{label}</p>
+                  <p style={{fontFamily:"Outfit, sans-serif",fontWeight:700,fontSize:12,color:"#fff",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{value}</p>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
+          );
+        })()}
       </div>
 
       {/* Breakdown */}
@@ -1445,26 +1443,21 @@ function Step7({calc,orcamento,settings,desconto,onDescontoChange,scenarioA,onSa
           <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
             <thead><tr style={{background:C.dark}}>
               {["Disciplina","A1",
-                ...(settings.engEnabled?["HH/A1 Modelador","HH/A1 Eng."]:["HH/A1"]),
-                "Horas","Custo"].map((h,i)=>(
+                ...(settings.engEnabled?["HH Modelador","HH Eng."]:["HH Modelador"]),
+                "Custo"].map((h,i)=>(
                 <th key={h} style={{padding:"9px 12px",textAlign:i===0?"left":"right",fontSize:11,fontWeight:700,color:C.sageL,textTransform:"uppercase",letterSpacing:".04em"}}>{h}</th>
               ))}
             </tr></thead>
             <tbody>
-              {disciplineRows.map((d,i)=>{
-                const hhEng=settings.engEnabled?(settings.engHH[d.id]??4.0):null;
-                return(
-                  <tr key={d.id} style={{background:i%2===0?"#fff":C.bg,borderTop:`1px solid ${C.mid}`}}>
-                    <td style={{padding:"8px 12px",color:C.text}}>{d.name}</td>
-                    <td style={{padding:"8px 12px",textAlign:"right",color:C.muted}}>{d.a1}</td>
-                    {settings.engEnabled&&<td style={{padding:"8px 12px",textAlign:"right",color:C.muted}}>{N1(d.hh)}h</td>}
-                    {settings.engEnabled&&<td style={{padding:"8px 12px",textAlign:"right",color:"#7C3AED"}}>{N1(hhEng)}h</td>}
-                    {!settings.engEnabled&&<td style={{padding:"8px 12px",textAlign:"right",color:C.muted}}>{N1(d.hh)}h</td>}
-                    <td style={{padding:"8px 12px",textAlign:"right",fontWeight:600,color:C.dark}}>{N0(d.hours)}h</td>
-                    <td style={{padding:"8px 12px",textAlign:"right",fontWeight:600,color:C.dark}}>{BRL(d.cost)}</td>
-                  </tr>
-                );
-              })}
+              {disciplineRows.map((d,i)=>(
+                <tr key={d.id} style={{background:i%2===0?"#fff":C.bg,borderTop:`1px solid ${C.mid}`}}>
+                  <td style={{padding:"8px 12px",color:C.text}}>{d.name}</td>
+                  <td style={{padding:"8px 12px",textAlign:"right",color:C.muted}}>{d.a1}</td>
+                  <td style={{padding:"8px 12px",textAlign:"right",fontWeight:600,color:C.dark}}>{d.modelingHours}h</td>
+                  {settings.engEnabled&&<td style={{padding:"8px 12px",textAlign:"right",fontWeight:600,color:"#7C3AED"}}>{d.engHoursDisc}h</td>}
+                  <td style={{padding:"8px 12px",textAlign:"right",fontWeight:600,color:C.dark}}>{BRL(d.cost)}</td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
@@ -1956,11 +1949,11 @@ export default function App(){
     const margin={maquete:settings.margemMaquete,projeto3d:settings.margemProjeto3d,bim:settings.margemBim}[deliveryType]??settings.margemProjeto3d;
     const finalPrice=settings.margemEnabled?R(baseCost/(1-margin/100),2):baseCost;
     const marginValue=settings.margemEnabled?R(finalPrice-baseCost,2):0;
-    const disciplineRows=activeDisciplines.map(d=>({
-      ...d,
-      hours:Math.round(d.a1*d.hh*multiplier*scalingFactor),
-      cost:R(d.a1*d.hh*multiplier*scalingFactor*settings.hhModelador,2),
-    }));
+    const disciplineRows=activeDisciplines.map(d=>{
+      const modelingHours=Math.round(d.a1*d.hh*multiplier*scalingFactor);
+      const dEngHours=settings.engEnabled?Math.round(d.a1*(settings.engHH[d.id]??4.0)):0;
+      return{...d,modelingHours,engHoursDisc:dEngHours,hours:modelingHours,cost:R(modelingHours*settings.hhModelador,2)};
+    });
     return{totalModelingHours:scaledModelingHours,modelingCost,engHours,engCost,coordHours,coordCost,derivedHours,derivedCost,softwareCost,baseCost,margin,finalPrice,marginValue,multiplier,disciplineRows,scalingFactor};
   },[disciplines,multiplier,totalModelingHours,totalA1,coord,derivados,settings,deliveryType]);
 
