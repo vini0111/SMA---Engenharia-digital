@@ -1952,7 +1952,7 @@ export default function App(){
     const disciplineRows=activeDisciplines.map(d=>{
       const modelingHours=Math.round(d.a1*d.hh*multiplier*scalingFactor);
       const dEngHours=settings.engEnabled?Math.round(d.a1*(settings.engHH[d.id]??4.0)):0;
-      return{...d,modelingHours,engHoursDisc:dEngHours,hours:modelingHours,cost:R(modelingHours*settings.hhModelador,2)};
+      return{...d,modelingHours,engHoursDisc:dEngHours,hours:modelingHours,cost:R(modelingHours*settings.hhModelador+dEngHours*settings.hhCoordenador,2)};
     });
     return{totalModelingHours:scaledModelingHours,modelingCost,engHours,engCost,coordHours,coordCost,derivedHours,derivedCost,softwareCost,baseCost,margin,finalPrice,marginValue,multiplier,disciplineRows,scalingFactor};
   },[disciplines,multiplier,totalModelingHours,totalA1,coord,derivados,settings,deliveryType]);
